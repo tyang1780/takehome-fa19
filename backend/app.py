@@ -51,9 +51,9 @@ def mirror(name):
     data = {"name": name}
     return create_response(data)
 
-@app.route("/contacts", methods=['GET'])
-def get_all_contacts():
-    return create_response({"contacts": db.get('contacts')})
+# @app.route("/contacts", methods=['GET'])
+# def get_all_contacts():
+#     return create_response({"contacts": db.get('contacts')})
 
 @app.route("/shows/<id>", methods=['DELETE'])
 def delete_show(id):
@@ -64,6 +64,59 @@ def delete_show(id):
 
 
 # TODO: Implement the rest of the API here!
+
+@app.route("/contacts/<id>", methods=['GET'])
+def get_contact_by_id(id):
+    contact = db.getById('contacts', int(id))
+    if (contact):
+        return create_response(contact)
+    else:
+        return create_response(status=404, message="No contact with this id exists")
+
+@app.route("/contacts", methods=['GET'])
+def get_contacts():
+    hobby = request.args.get('hobby')
+    if (hobby):
+        contacts = [c for c in db.get('contacts') if c['hobby'] == hobby]
+        if (contacts):
+            return create_response({"contacts": contacts})
+        else:
+            return create_response(status=404, message="No contact with this hobby exists")
+    else:
+        return create_response({"contacts": db.get('contacts')})
+
+@app.route("/contacts", methods=['POST'])
+def create_contact():
+    parameters = ['name', 'nickname', 'hobby']
+    missing_params = []
+    body = request.get_json()
+    new_person = {}
+
+    for param in parameters:
+        if (param in body):
+            new_person[param] = body[param]
+        else:
+            missing_params.append(param)
+    if (missing_params):
+        return create_response(status=422, message="Missing {} parameters".format(', '.join(missing_params)))
+    else:
+        payload = db.create('contacts', new_person)
+        return create_response(data=payload, status=201)
+
+@app.route("/contacts/<id>", methods=['PUT'])
+def update_contact(id):
+    params = ['name', 'hobby']
+    body = request.get_json()
+    updates = {}
+    if (db.getById('contacts', int(id))):
+        for param in params:
+            if (param in body):
+                updates[param] = body[param]
+        updated = db.updateById('contacts', int(id), updates)
+        return create_response(data=updated)
+    else:
+        return create_response(status=404, message="No contact with this id exists")
+
 
 """
 ~~~~~~~~~~~~ END API ~~~~~~~~~~~~
